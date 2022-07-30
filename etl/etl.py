@@ -313,6 +313,7 @@ with local_engine.connect() as con:
                         d.full_name AS name,
                         COALESCE(c.name, 'No Constructor') AS constructor_name,
                         COALESCE(c.color, '#BAB0AC') AS constructor_color,
+                        d.wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
@@ -342,6 +343,7 @@ with local_engine.connect() as con:
                         c.name,
                         c.name AS constructor_name,
                         c.color AS constructor_color,
+                        c.wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
@@ -371,6 +373,7 @@ with local_engine.connect() as con:
                         m.name,
                         m.constructor_name,
                         m.constructor_color,
+                        m.wiki_url,
                         CASE
                             WHEN v.idx = 0 THEN 'Points'
                             WHEN v.idx = 1 THEN 'Race Wins'
@@ -396,6 +399,7 @@ with local_engine.connect() as con:
                         name,
                         constructor_name,
                         constructor_color,
+                        wiki_url,
                         metric,
                         metric_value,
                         ROW_NUMBER() OVER (PARTITION BY year, type, metric ORDER BY metric_value DESC) AS position
@@ -463,6 +467,7 @@ with local_engine.connect() as con:
                         d.full_name AS name,
                         COALESCE(c.name, 'No Constructor') AS constructor_name,
                         COALESCE(c.color, '#BAB0AC') AS constructor_color,
+                        d.wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums
@@ -490,6 +495,7 @@ with local_engine.connect() as con:
                         c.name AS name,
                         c.name AS constructor_name,
                         c.color AS constructor_color,
+                        c.wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums
@@ -520,6 +526,7 @@ with local_engine.connect() as con:
                         m.name,
                         m.constructor_name,
                         m.constructor_color,
+                        m.wiki_url,
                         CASE
                             WHEN v.idx = 0 THEN 'Points'
                             WHEN v.idx = 1 THEN 'Race Wins'
@@ -545,6 +552,7 @@ with local_engine.connect() as con:
                         name,
                         constructor_name,
                         constructor_color,
+                        wiki_url,
                         metric,
                         metric_value,
                         ROW_NUMBER() OVER (PARTITION BY year, race, type, metric ORDER BY metric_value DESC) AS position

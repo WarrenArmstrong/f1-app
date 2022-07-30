@@ -2,6 +2,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 import pandas as pd
+import numpy as np
 from random import sample
 import itertools as it
 
@@ -31,6 +32,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                         name,
                         constructor_name,
                         constructor_color,
+                        wiki_url,
                         metric_value,
                         position,
                         SUM(COALESCE(metric_value, 0)) OVER (
@@ -56,6 +58,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                         name,
                         constructor_name,
                         constructor_color,
+                        wiki_url,
                         metric_value,
                         position,
                         cumulative_metric_value,
@@ -69,6 +72,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                 name,
                 constructor_name,
                 constructor_color,
+                wiki_url,
                 {cumualtive_prefix}metric_value AS metric_value,
                 {cumualtive_prefix}position AS position
             FROM rankings
@@ -95,11 +99,21 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                 marker_color=df[df['type'] == 'Driver']['constructor_color'],
                 xaxis='x1',
                 yaxis='y1',
-                #name='Driver Points',
+                #name=F'Driver {metric}',
+                name='',
                 legendgroup=1,
                 showlegend=False,
                 orientation='h',
-                text=df[df['type'] == 'Driver']['constructor_name']
+                text=df[df['type'] == 'Driver']['constructor_name'],
+                customdata=np.dstack([
+                    df[df['type'] == 'Driver']['wiki_url'],
+                    df[df['type'] == 'Driver']['constructor_name'],
+                ])[0],
+                hovertemplate= '<br>'.join([
+                    'Driver: %{y}',
+                    'Constructor: %{customdata[1]}',
+                    f'{metric}: %{{x}}',
+                ]),
             ),
             go.Bar(
                 x=df[df['type'] == 'Constructor']['metric_value'],
@@ -107,11 +121,19 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                 marker_color=df[df['type'] == 'Constructor']['constructor_color'],
                 xaxis='x2',
                 yaxis='y2',
-                #name='Constructor Points',
+                #name=f'Constructor {metric}',
+                name='',
                 legendgroup=2,
                 showlegend=False,
                 orientation='h',
-                text=df[df['type'] == 'Constructor']['constructor_name']
+                text=df[df['type'] == 'Constructor']['constructor_name'],
+                customdata=np.dstack([
+                    df[df['type'] == 'Constructor']['wiki_url'],
+                ])[0],
+                hovertemplate= '<br>'.join([
+                    'Constructor: %{y}',
+                    f'{metric}: %{{x}}',
+                ]),
             ),
         ]
 
@@ -134,6 +156,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
             'font': {
                 'size': 16,
             },
+            'hovermode': 'y',
             'xaxis1': {
                 'title': metric,
                 'range': [0, df[df['type'] == 'Driver']['metric_value'].max()],
@@ -273,6 +296,7 @@ def season_rank_chart(metric, cumulative, season, top_n):
                         name,
                         constructor_name,
                         constructor_color,
+                        wiki_url,
                         metric_value,
                         position,
                         SUM(COALESCE(metric_value, 0)) OVER (
@@ -300,6 +324,7 @@ def season_rank_chart(metric, cumulative, season, top_n):
                         name,
                         constructor_name,
                         constructor_color,
+                        wiki_url,
                         metric_value,
                         position,
                         cumulative_metric_value,
@@ -315,6 +340,7 @@ def season_rank_chart(metric, cumulative, season, top_n):
                 name,
                 constructor_name,
                 constructor_color,
+                wiki_url,
                 {cumualtive_prefix}metric_value AS metric_value,
                 {cumualtive_prefix}position AS position
             FROM rankings
@@ -342,10 +368,20 @@ def season_rank_chart(metric, cumulative, season, top_n):
                 xaxis='x1',
                 yaxis='y1',
                 #name='Driver Points',
+                name='',
                 legendgroup=1,
                 showlegend=False,
                 orientation='h',
                 text=df[df['type'] == 'Driver']['constructor_name'],
+                customdata=np.dstack([
+                    df[df['type'] == 'Driver']['wiki_url'],
+                    df[df['type'] == 'Driver']['constructor_name'],
+                ])[0],
+                hovertemplate= '<br>'.join([
+                    'Driver: %{y}',
+                    'Constructor: %{customdata[1]}',
+                    f'{metric}: %{{x}}',
+                ]),
             ),
             go.Bar(
                 x=df[df['type'] == 'Constructor']['metric_value'],
@@ -354,10 +390,18 @@ def season_rank_chart(metric, cumulative, season, top_n):
                 xaxis='x2',
                 yaxis='y2',
                 #name='Constructor Points',
+                name='',
                 legendgroup=2,
                 showlegend=False,
                 orientation='h',
                 text=df[df['type'] == 'Constructor']['constructor_name'],
+                customdata=np.dstack([
+                    df[df['type'] == 'Constructor']['wiki_url'],
+                ])[0],
+                hovertemplate= '<br>'.join([
+                    'Constructor: %{y}',
+                    f'{metric}: %{{x}}',
+                ]),
             ),
         ]
 
@@ -380,6 +424,7 @@ def season_rank_chart(metric, cumulative, season, top_n):
             'font': {
                 'size': 16,
             },
+            'hovermode': 'y',
             'xaxis1': {
                 'title': metric,
                 'range': [0, df[df['type'] == 'Driver']['metric_value'].max()],

@@ -1,6 +1,9 @@
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 
+from dash.exceptions import PreventUpdate
+import webbrowser
+
 from app import app
 
 from . import charts
@@ -25,3 +28,27 @@ def seasons_update_rank_graph(metric, cumulative, start_year, top_n):
 )
 def seasons_update_rank_graph(metric, cumulative, season, top_n):
     return charts.season_rank_chart(metric, cumulative, season, top_n)
+
+
+@app.callback(
+    Output('seasons_placeholder', 'children'),
+    Input('seasons_rank_graph', 'clickData'),
+)
+def seasons_open_wiki(clickData):
+    if clickData is None:
+        raise PreventUpdate
+    else:
+        url = clickData['points'][0]['customdata'][0]
+        webbrowser.open_new_tab(url)
+
+
+@app.callback(
+    Output('season_placeholder', 'children'),
+    Input('season_rank_graph', 'clickData'),
+)
+def season_open_wiki(clickData):
+    if clickData is None:
+        raise PreventUpdate
+    else:
+        url = clickData['points'][0]['customdata'][0]
+        webbrowser.open_new_tab(url)

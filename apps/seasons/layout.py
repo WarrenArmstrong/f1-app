@@ -164,6 +164,8 @@ def layout(url):
                 ),
             ]
         ),
+        html.Div(id='seasons_placeholder'),
+        html.Div(id='season_placeholder'),
     ]
 
     return contents
