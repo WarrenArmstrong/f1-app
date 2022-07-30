@@ -3,8 +3,10 @@ import pandas as pd
 from sqlalchemy import create_engine
 import os
 # %%
+# connect to database
 local_engine = create_engine('sqlite:///../data.db')
 # %%
+# load csvs into database
 for filename in os.listdir('data/'):
     print(filename)
     df = pd.read_csv(f'data/{filename}')
@@ -15,6 +17,7 @@ for filename in os.listdir('data/'):
         index=False,
     )
 # %%
+# build database
 with local_engine.connect() as con:
     con.execute('DROP TABLE IF EXISTS dim_circuit')
     con.execute(f'''
@@ -277,6 +280,7 @@ with local_engine.connect() as con:
     #     );
     # ''')
 # %%
+# drop staging tables
 stg_tables = pd.read_sql(
     con=local_engine,
     sql="SELECT tbl_name FROM sqlite_master WHERE tbl_name LIKE 'stg_%'"
@@ -286,6 +290,128 @@ for stg_table in stg_tables:
     with local_engine.connect() as con:
         con.execute(f'DROP TABLE IF EXISTS {stg_table}')
 # %%
+# calculate reports
+with local_engine.connect() as con:
+    con.execute('DROP TABLE IF EXISTS report_seasons_metrics')
+    con.execute(f'''
+        --sql
+        
+        CREATE TABLE report_seasons_metrics AS
+            WITH
+                vector(idx) AS (
+                    SELECT 0 AS idx
+                    UNION ALL
+                    SELECT idx + 1 AS idx
+                    FROM vector
+                    WHERE vector.idx <= 10
+                ),
+                driver_metrics AS (
+                    SELECT
+                        r.year,
+                        'Driver' AS type,
+                        d.driver_k AS id,
+                        d.full_name AS name,
+                        COALESCE(c.name, 'No Constructor') AS constructor_name,
+                        COALESCE(c.color, '#BAB0AC') AS constructor_color,
+                        SUM(rr.points) AS points,
+                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
+                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
+                        ROW_NUMBER() OVER (PARTITION BY r.year ORDER BY SUM(rr.points) DESC) = 1 AS championships
+                    FROM
+                        dim_driver AS d
+                        CROSS JOIN dim_season AS s
+                        LEFT JOIN dim_race AS r
+                            ON s.year = r.year
+                        LEFT JOIN fact_race_result AS rr
+                            ON r.race_k = rr.race_k
+                            AND d.driver_k = rr.driver_k
+                        LEFT JOIN dim_driver_constructor AS dc
+                            ON r.year = dc.year
+                            AND d.driver_k = dc.driver_k
+                        LEFT JOIN dim_constructor AS c
+                            ON dc.constructor_k = c.constructor_k
+                    GROUP BY
+                        r.year,
+                        d.driver_k
+                ),
+                constructor_metrics AS (
+                    SELECT
+                        r.year,
+                        'Constructor' AS type,
+                        c.constructor_k AS id,
+                        c.name,
+                        c.name AS constructor_name,
+                        c.color AS constructor_color,
+                        SUM(rr.points) AS points,
+                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
+                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
+                        ROW_NUMBER() OVER (PARTITION BY r.year ORDER BY SUM(rr.points) DESC) = 1 AS championships
+                    FROM
+                        dim_constructor AS c
+                        CROSS JOIN dim_season AS s
+                        LEFT JOIN dim_race AS r
+                            ON s.year = r.year
+                        LEFT JOIN fact_race_result AS rr
+                            ON r.race_k = rr.race_k
+                            AND c.constructor_k = rr.constructor_k
+                    GROUP BY
+                        r.year,
+                        c.constructor_k
+                ),
+                combined_metrics AS (
+                    SELECT * FROM driver_metrics
+                    UNION ALL
+                    SELECT * FROM constructor_metrics
+                ),
+                unpivoted_metrics AS (
+                    SELECT
+                        m.year,
+                        m.type,
+                        m.id,
+                        m.name,
+                        m.constructor_name,
+                        m.constructor_color,
+                        CASE
+                            WHEN v.idx = 0 THEN 'Points'
+                            WHEN v.idx = 1 THEN 'Race Wins'
+                            WHEN v.idx = 2 THEN 'Podiums'
+                            WHEN v.idx = 3 THEN 'Championships'
+                        END AS metric,
+                        CASE
+                            WHEN v.idx = 0 THEN m.points
+                            WHEN v.idx = 1 THEN m.race_wins
+                            WHEN v.idx = 2 THEN m.podiums
+                            WHEN v.idx = 3 THEN m.championships
+                        END AS metric_value
+                    FROM
+                        combined_metrics AS m
+                        CROSS JOIN vector AS v
+                    WHERE v.idx <= 3
+                ),
+                rankings AS (
+                    SELECT
+                        year,
+                        type,
+                        id,
+                        name,
+                        constructor_name,
+                        constructor_color,
+                        metric,
+                        metric_value,
+                        ROW_NUMBER() OVER (PARTITION BY year, type, metric ORDER BY metric_value DESC) AS position
+                    FROM unpivoted_metrics
+                )
+            SELECT * FROM rankings
+            ORDER BY year, metric, type, position DESC;
+    ''')
+    con.execute(f'''
+        CREATE INDEX "report_seasons_metrics_year_metric" ON "report_seasons_metrics" (
+            "year",
+            "metric"
+        );
+    ''')
+# %%
+# cleanup
 with local_engine.connect() as con:
         con.execute('ANALYZE')
         con.execute('VACUUM')

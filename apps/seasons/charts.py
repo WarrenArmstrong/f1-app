@@ -15,19 +15,14 @@ def gen_color(df, cols):
     return pd.merge(df, color_df, how='left', left_on=cols, right_on=cols)
 
 def seasons_rank_chart(metric, cumulative, start_year, top_n):
+    cumualtive_prefix = 'cumulative_' if cumulative == 'True' else ''
+
     df = pd.read_sql(
         con=engine,
         sql=f'''
             --sql
             
             WITH
-                vector(idx) AS (
-                    SELECT 0 AS idx
-                    UNION ALL
-                    SELECT idx + 1 AS idx
-                    FROM vector
-                    WHERE vector.idx <= 10
-                ),
                 seasons_drivers AS (
                     SELECT
                         d.*
@@ -52,124 +47,37 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                     WHERE r.year >= {start_year}
                     GROUP BY rr.constructor_k
                 ),
-                seasons AS (
-                    SELECT *
-                    FROM dim_season
-                    WHERE year >= {start_year}
-                ),
-                driver_metrics AS (
+                metrics AS (
                     SELECT
-                        r.year,
-                        'Driver' AS type,
-                        d.driver_k AS id,
-                        d.full_name AS name,
-                        COALESCE(c.name, 'No Constructor') AS constructor_name,
-                        COALESCE(c.color, '#BAB0AC') AS constructor_color,
-                        SUM(rr.points) AS points,
-                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
-                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
-                        ROW_NUMBER() OVER (PARTITION BY r.year ORDER BY SUM(rr.points) DESC) = 1 AS championships
-                    FROM
-                        seasons_drivers AS d
-                        CROSS JOIN seasons AS s
-                        LEFT JOIN dim_race AS r
-                            ON s.year = r.year
-                        LEFT JOIN fact_race_result AS rr
-                            ON r.race_k = rr.race_k
-                            AND d.driver_k = rr.driver_k
-                        LEFT JOIN dim_driver_constructor AS dc
-                            ON r.year = dc.year
-                            AND d.driver_k = dc.driver_k
-                        LEFT JOIN dim_constructor AS c
-                            ON dc.constructor_k = c.constructor_k
-                    GROUP BY
-                        r.year,
-                        d.driver_k
-                ),
-                constructor_metrics AS (
-                    SELECT
-                        r.year,
-                        'Constructor' AS type,
-                        c.constructor_k AS id,
-                        c.name,
-                        c.name AS constructor_name,
-                        c.color AS constructor_color,
-                        SUM(rr.points) AS points,
-                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
-                        SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
-                        ROW_NUMBER() OVER (PARTITION BY r.year ORDER BY SUM(rr.points) DESC) = 1 AS championships
-                    FROM
-                        seasons_constructors AS c
-                        CROSS JOIN seasons AS s
-                        LEFT JOIN dim_race AS r
-                            ON s.year = r.year
-                        LEFT JOIN fact_race_result AS rr
-                            ON r.race_k = rr.race_k
-                            AND c.constructor_k = rr.constructor_k
-                    GROUP BY
-                        r.year,
-                        c.constructor_k
-                ),
-                combined_metrics AS (
-                    SELECT * FROM driver_metrics
-                    UNION ALL
-                    SELECT * FROM constructor_metrics
-                ),
-                unpivoted_metrics AS (
-                    SELECT
-                        m.year,
-                        m.type,
-                        m.id,
-                        m.name,
-                        m.constructor_name,
-                        m.constructor_color,
-                        CASE
-                            WHEN v.idx = 0 THEN 'Points'
-                            WHEN v.idx = 1 THEN 'Race Wins'
-                            WHEN v.idx = 2 THEN 'Podiums'
-                            WHEN v.idx = 3 THEN 'Championships'
-                        END AS metric,
-                        CASE
-                            WHEN v.idx = 0 THEN m.points
-                            WHEN v.idx = 1 THEN m.race_wins
-                            WHEN v.idx = 2 THEN m.podiums
-                            WHEN v.idx = 3 THEN m.championships
-                        END AS metric_value,
-                        FALSE AS is_cumulative
-                    FROM
-                        combined_metrics AS m
-                        CROSS JOIN vector AS v
-                    WHERE TRUE
-                        AND v.idx <= 3
-                        --AND m.year >= {start_year}
-                ),
-                cumulative_unpivoted_metrics AS (
-                    SELECT
-                        year,
-                        type,
-                        id,
-                        name,
-                        constructor_name,
-                        constructor_color,
-                        metric,
-                        SUM(COALESCE(metric_value, 0)) OVER (
+                        rsm.year,
+                        rsm.type,
+                        rsm.id,
+                        rsm.name,
+                        rsm.constructor_name,
+                        rsm.constructor_color,
+                        rsm.metric_value,
+                        rsm.position,
+                        SUM(COALESCE(rsm.metric_value, 0)) OVER (
                             PARTITION BY
                                 id,
-                                type,
-                                metric
+                                type
                             ORDER BY
                                 year
                             ROWS BETWEEN
                                 UNBOUNDED PRECEDING
                                 AND CURRENT ROW
-                        ) AS metric_value,
-                        TRUE AS is_cumulative
-                    FROM unpivoted_metrics
-                ),
-                combined_unpivoted_metrics AS (
-                    SELECT * FROM unpivoted_metrics
-                    UNION ALL
-                    SELECT * FROM cumulative_unpivoted_metrics
+                        ) AS cumulative_metric_value
+                    FROM
+                        report_seasons_metrics AS rsm
+                        --INNER JOIN seasons_drivers AS d
+                        --    ON rsm.type = 'Driver'
+                        --    AND rsm.id = d.driver_k
+                        --INNER JOIN seasons_constructors AS c
+                        --    ON rsm.type = 'Constructor'
+                        --    AND rsm.id = c.constructor_k
+                    WHERE TRUE
+                        AND rsm.year >= {start_year}
+                        AND rsm.metric = '{metric}'
                 ),
                 rankings AS (
                     SELECT
@@ -179,18 +87,24 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                         name,
                         constructor_name,
                         constructor_color,
-                        metric,
                         metric_value,
-                        is_cumulative,
-                        ROW_NUMBER() OVER (PARTITION BY year, type, metric, is_cumulative ORDER BY metric_value DESC) AS position
-                    FROM combined_unpivoted_metrics
+                        position,
+                        cumulative_metric_value,
+                        ROW_NUMBER() OVER (PARTITION BY year, type ORDER BY cumulative_metric_value DESC) AS cumulative_position
+                    FROM metrics
                 )
-            SELECT * FROM rankings
-            WHERE TRUE
-                AND position <= {top_n}
-                AND {'' if cumulative == 'True' else 'not '} is_cumulative
-                AND metric = '{metric}'
-            ORDER BY year, is_cumulative, metric, type, position DESC;
+            SELECT
+                year,
+                type,
+                id,
+                name,
+                constructor_name,
+                constructor_color,
+                {cumualtive_prefix}metric_value AS metric_value,
+                {cumualtive_prefix}position AS position
+            FROM rankings
+            WHERE {cumualtive_prefix}position <= {top_n}
+            ORDER BY year, type, position DESC;
         '''
     )
 
