@@ -23,41 +23,17 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
             --sql
             
             WITH
-                seasons_drivers AS (
-                    SELECT
-                        d.*
-                    FROM
-                        fact_race_result AS rr
-                        LEFT JOIN dim_race AS r
-                            ON rr.race_k = r.race_k
-                        LEFT JOIN dim_driver AS d
-                            ON rr.driver_k = d.driver_k
-                    WHERE r.year >= {start_year}
-                    GROUP BY rr.driver_k
-                ),
-                seasons_constructors AS (
-                    SELECT
-                        c.*
-                    FROM
-                        fact_race_result AS rr
-                        LEFT JOIN dim_race AS r
-                            ON rr.race_k = r.race_k
-                        LEFT JOIN dim_constructor AS c
-                            ON rr.constructor_k = c.constructor_k
-                    WHERE r.year >= {start_year}
-                    GROUP BY rr.constructor_k
-                ),
                 metrics AS (
                     SELECT
-                        rsm.year,
-                        rsm.type,
-                        rsm.id,
-                        rsm.name,
-                        rsm.constructor_name,
-                        rsm.constructor_color,
-                        rsm.metric_value,
-                        rsm.position,
-                        SUM(COALESCE(rsm.metric_value, 0)) OVER (
+                        year,
+                        type,
+                        id,
+                        name,
+                        constructor_name,
+                        constructor_color,
+                        metric_value,
+                        position,
+                        SUM(COALESCE(metric_value, 0)) OVER (
                             PARTITION BY
                                 id,
                                 type
@@ -67,17 +43,10 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                                 UNBOUNDED PRECEDING
                                 AND CURRENT ROW
                         ) AS cumulative_metric_value
-                    FROM
-                        report_seasons_metrics AS rsm
-                        --INNER JOIN seasons_drivers AS d
-                        --    ON rsm.type = 'Driver'
-                        --    AND rsm.id = d.driver_k
-                        --INNER JOIN seasons_constructors AS c
-                        --    ON rsm.type = 'Constructor'
-                        --    AND rsm.id = c.constructor_k
+                    FROM report_seasons_metrics
                     WHERE TRUE
-                        AND rsm.year >= {start_year}
-                        AND rsm.metric = '{metric}'
+                        AND year >= {start_year}
+                        AND metric = '{metric}'
                 ),
                 rankings AS (
                     SELECT
