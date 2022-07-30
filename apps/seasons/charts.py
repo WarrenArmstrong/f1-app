@@ -33,6 +33,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                         constructor_name,
                         constructor_color,
                         wiki_url,
+                        season_wiki_url,
                         metric_value,
                         position,
                         SUM(COALESCE(metric_value, 0)) OVER (
@@ -59,6 +60,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                         constructor_name,
                         constructor_color,
                         wiki_url,
+                        season_wiki_url,
                         metric_value,
                         position,
                         cumulative_metric_value,
@@ -73,6 +75,7 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                 constructor_name,
                 constructor_color,
                 wiki_url,
+                season_wiki_url,
                 {cumualtive_prefix}metric_value AS metric_value,
                 {cumualtive_prefix}position AS position
             FROM rankings
@@ -137,10 +140,33 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
             ),
         ]
 
-        return data
+        season_wiki_url = df['season_wiki_url'].iloc[0]
+
+        layout = {
+            'annotations': [
+                {
+                    'text': f'<a href="{season_wiki_url}">Season Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    'y': 0.475,
+                }
+            ],
+        }
+
+        fig = {
+            'data': data,
+            'layout': layout,
+        }
+
+        return fig
+
+    season_wiki_url = df['season_wiki_url'].iloc[0]
 
     fig = go.Figure({
-        'data': frame_figure(frames_data[0]),
+        'data': frame_figure(frames_data[0])['data'],
         'layout': {
             'template': 'gridon',
             'height': 700,
@@ -175,6 +201,17 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                 'title': 'Constructor',
                 'domain': [0, 0.4]
             },
+            'annotations': [
+                {
+                    'text': f'<a href="{season_wiki_url}">Season Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    'y': 0.475,
+                }
+            ],
             'updatemenus': [
                 {
                     'buttons': [
@@ -267,8 +304,9 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
         },
         'frames': [
             {
-                'data': frame_figure(frame),
                 'name': str(frame['frame_label']),
+                'data': frame_figure(frame)['data'],
+                'layout': frame_figure(frame)['layout'],
             }
             for frame in frames_data
         ]
@@ -278,73 +316,18 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
 
 
 def season_rank_chart(metric, cumulative, season, top_n):
-    cumualtive_prefix = 'cumulative_' if cumulative == 'True' else ''
-
     df = pd.read_sql(
         con=engine,
         sql=f'''
             --sql
             
-            WITH
-                metrics AS (
-                    SELECT
-                        year,
-                        race,
-                        race_date,
-                        type,
-                        id,
-                        name,
-                        constructor_name,
-                        constructor_color,
-                        wiki_url,
-                        metric_value,
-                        position,
-                        SUM(COALESCE(metric_value, 0)) OVER (
-                            PARTITION BY
-                                id,
-                                type
-                            ORDER BY
-                                year
-                            ROWS BETWEEN
-                                UNBOUNDED PRECEDING
-                                AND CURRENT ROW
-                        ) AS cumulative_metric_value
-                    FROM report_season_metrics
-                    WHERE TRUE
-                        AND year = {season}
-                        AND metric = '{metric}'
-                ),
-                rankings AS (
-                    SELECT
-                        year,
-                        race,
-                        race_date,
-                        type,
-                        id,
-                        name,
-                        constructor_name,
-                        constructor_color,
-                        wiki_url,
-                        metric_value,
-                        position,
-                        cumulative_metric_value,
-                        ROW_NUMBER() OVER (PARTITION BY race, type ORDER BY cumulative_metric_value DESC) AS cumulative_position
-                    FROM metrics
-                )
-            SELECT
-                year,
-                race,
-                race_date,
-                type,
-                id,
-                name,
-                constructor_name,
-                constructor_color,
-                wiki_url,
-                {cumualtive_prefix}metric_value AS metric_value,
-                {cumualtive_prefix}position AS position
-            FROM rankings
-            WHERE {cumualtive_prefix}position <= {top_n}
+            SELECT *
+            FROM report_season_metrics
+            WHERE TRUE
+                AND year = {season}
+                AND metric = '{metric}'
+                AND {'' if cumulative == 'True' else 'not '} is_cumulative
+                AND position <= {top_n}
             ORDER BY race_date, type, position DESC;
         '''
     )
@@ -405,10 +388,56 @@ def season_rank_chart(metric, cumulative, season, top_n):
             ),
         ]
 
-        return data
+        race_wiki_url = df['race_wiki_url'].iloc[0]
+        circuit_wiki_url = df['circuit_wiki_url'].iloc[0]
+        season_wiki_url = df['season_wiki_url'].iloc[0]
+
+        layout = {
+            'annotations': [
+                {
+                    'text': f'<a href="{race_wiki_url}">Race Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    'y': 0.475,
+                },
+                {
+                    'text': f'<a href="{circuit_wiki_url}">Circuit Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    
+                    'y': 0.525,
+                },
+                {
+                    'text': f'<a href="{season_wiki_url}">Season Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    'y': 0.425,
+                },
+            ],
+        }
+
+        fig = {
+            'data': data,
+            'layout': layout,
+        }
+
+        return fig
+
+    race_wiki_url = df['race_wiki_url'].iloc[0]
+    circuit_wiki_url = df['circuit_wiki_url'].iloc[0]
+    season_wiki_url = df['season_wiki_url'].iloc[0]
 
     fig = go.Figure({
-        'data': frame_figure(frames_data[0]),
+        'data': frame_figure(frames_data[0])['data'],
         'layout': {
             'template': 'gridon',
             'height': 700,
@@ -443,6 +472,36 @@ def season_rank_chart(metric, cumulative, season, top_n):
                 'title': 'Constructor',
                 'domain': [0, 0.4]
             },
+            'annotations': [
+                {
+                    'text': f'<a href="{race_wiki_url}">Race Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    'y': 0.475,
+                },
+                {
+                    'text': f'<a href="{circuit_wiki_url}">Circuit Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    
+                    'y': 0.525,
+                },
+                {
+                    'text': f'<a href="{season_wiki_url}">Season Wiki</a>',
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'x': 1,
+                    'y': 0.425,
+                },
+            ],
             'updatemenus': [
                 {
                     'buttons': [
@@ -535,8 +594,9 @@ def season_rank_chart(metric, cumulative, season, top_n):
         },
         'frames': [
             {
-                'data': frame_figure(frame),
                 'name': str(frame['frame_label']),
+                'data': frame_figure(frame)['data'],
+                'layout': frame_figure(frame)['layout'],
             }
             for frame in frames_data
         ]

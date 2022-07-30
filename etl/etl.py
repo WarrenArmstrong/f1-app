@@ -290,7 +290,7 @@ for stg_table in stg_tables:
     with local_engine.connect() as con:
         con.execute(f'DROP TABLE IF EXISTS {stg_table}')
 # %%
-# calculate reports
+# generate reports
 with local_engine.connect() as con:
     con.execute('DROP TABLE IF EXISTS report_seasons_metrics')
     con.execute(f'''
@@ -314,6 +314,7 @@ with local_engine.connect() as con:
                         COALESCE(c.name, 'No Constructor') AS constructor_name,
                         COALESCE(c.color, '#BAB0AC') AS constructor_color,
                         d.wiki_url,
+                        s.wiki_url AS season_wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
@@ -344,6 +345,7 @@ with local_engine.connect() as con:
                         c.name AS constructor_name,
                         c.color AS constructor_color,
                         c.wiki_url,
+                        s.wiki_url AS season_wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums,
@@ -374,6 +376,7 @@ with local_engine.connect() as con:
                         m.constructor_name,
                         m.constructor_color,
                         m.wiki_url,
+                        m.season_wiki_url,
                         CASE
                             WHEN v.idx = 0 THEN 'Points'
                             WHEN v.idx = 1 THEN 'Race Wins'
@@ -400,6 +403,7 @@ with local_engine.connect() as con:
                         constructor_name,
                         constructor_color,
                         wiki_url,
+                        season_wiki_url,
                         metric,
                         metric_value,
                         ROW_NUMBER() OVER (PARTITION BY year, type, metric ORDER BY metric_value DESC) AS position
@@ -468,6 +472,9 @@ with local_engine.connect() as con:
                         COALESCE(c.name, 'No Constructor') AS constructor_name,
                         COALESCE(c.color, '#BAB0AC') AS constructor_color,
                         d.wiki_url,
+                        r.wiki_url AS race_wiki_url,
+                        cir.wiki_url AS circuit_wiki_url,
+                        s.wiki_url AS season_wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums
@@ -480,6 +487,10 @@ with local_engine.connect() as con:
                             AND d.driver_k = rr.driver_k
                         LEFT JOIN dim_constructor AS c
                             ON rr.constructor_k = c.constructor_k
+                        LEFT JOIN dim_circuit AS cir
+                            ON r.circuit_k = cir.circuit_k
+                        LEFT JOIN dim_season AS s
+                            ON r.year = s.year
                     GROUP BY
                         r.year,
                         r.race_k,
@@ -496,6 +507,9 @@ with local_engine.connect() as con:
                         c.name AS constructor_name,
                         c.color AS constructor_color,
                         c.wiki_url,
+                        r.wiki_url AS race_wiki_url,
+                        cir.wiki_url AS circuit_wiki_url,
+                        s.wiki_url AS season_wiki_url,
                         SUM(rr.points) AS points,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position = 1 ELSE 0 END) AS race_wins,
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums
@@ -506,6 +520,10 @@ with local_engine.connect() as con:
                         LEFT JOIN fact_race_result AS rr
                             ON r.race_k = rr.race_k
                             AND c.constructor_k = rr.constructor_k
+                        LEFT JOIN dim_circuit AS cir
+                            ON r.circuit_k = cir.circuit_k
+                        LEFT JOIN dim_season AS s
+                            ON r.year = s.year
                     GROUP BY
                         r.year,
                         r.race_k,
@@ -527,6 +545,9 @@ with local_engine.connect() as con:
                         m.constructor_name,
                         m.constructor_color,
                         m.wiki_url,
+                        m.race_wiki_url,
+                        m.circuit_wiki_url,
+                        m.season_wiki_url,
                         CASE
                             WHEN v.idx = 0 THEN 'Points'
                             WHEN v.idx = 1 THEN 'Race Wins'
@@ -536,11 +557,47 @@ with local_engine.connect() as con:
                             WHEN v.idx = 0 THEN m.points
                             WHEN v.idx = 1 THEN m.race_wins
                             WHEN v.idx = 2 THEN m.podiums
-                        END AS metric_value
+                        END AS metric_value,
+                        FALSE AS is_cumulative
                     FROM
                         combined_metrics AS m
                         CROSS JOIN vector AS v
                     WHERE v.idx <= 2
+                ),
+                cumulative_unpivoted_metrics AS (
+                    SELECT
+                        year,
+                        race,
+                        race_date,
+                        type,
+                        id,
+                        name,
+                        constructor_name,
+                        constructor_color,
+                        wiki_url,
+                        race_wiki_url,
+                        circuit_wiki_url,
+                        season_wiki_url,
+                        metric,
+                        SUM(COALESCE(metric_value, 0)) OVER (
+                            PARTITION BY
+                                year,
+                                id,
+                                type,
+                                metric
+                            ORDER BY
+                                race_date
+                            ROWS BETWEEN
+                                UNBOUNDED PRECEDING
+                                AND CURRENT ROW
+                        ) AS metric_value,
+                        TRUE AS is_cumulative
+                    FROM unpivoted_metrics
+                ),
+                combined_unpivoted_metrics AS (
+                    SELECT * FROM unpivoted_metrics
+                    UNION ALL
+                    SELECT * FROM cumulative_unpivoted_metrics
                 ),
                 rankings AS (
                     SELECT
@@ -553,18 +610,24 @@ with local_engine.connect() as con:
                         constructor_name,
                         constructor_color,
                         wiki_url,
+                        race_wiki_url,
+                        circuit_wiki_url,
+                        season_wiki_url,
                         metric,
                         metric_value,
-                        ROW_NUMBER() OVER (PARTITION BY year, race, type, metric ORDER BY metric_value DESC) AS position
-                    FROM unpivoted_metrics
+                        is_cumulative,
+                        ROW_NUMBER() OVER (PARTITION BY year, race, type, is_cumulative, metric ORDER BY metric_value DESC) AS position
+                    FROM combined_unpivoted_metrics
                 )
             SELECT * FROM rankings
-            ORDER BY year, race_date, metric, type, position DESC;
+            ORDER BY year, race_date, is_cumulative, metric, type, position DESC;
     ''')
     con.execute(f'''
-        CREATE INDEX "report_season_metrics_year_metric" ON "report_season_metrics" (
+        CREATE INDEX "report_season_metrics_year_metric_is_cumulative_position" ON "report_season_metrics" (
             "year",
-            "metric"
+            "metric",
+            "is_cumulative",
+            "position"
         );
     ''')
 # %%
