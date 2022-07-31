@@ -103,7 +103,8 @@ with local_engine.connect() as con:
                 lap,
                 position,
                 time,
-                milliseconds
+                milliseconds,
+                ROW_NUMBER() OVER (PARTITION BY raceId, driverId ORDER BY lap DESC) = 1 AS is_final
             FROM stg_lap_times;
     ''')
 
@@ -628,6 +629,66 @@ with local_engine.connect() as con:
             "metric",
             "is_cumulative",
             "position"
+        );
+    ''')
+
+
+    con.execute('DROP TABLE IF EXISTS report_race_metrics')
+    con.execute(f'''
+        --sql
+        
+        CREATE TABLE report_race_metrics AS
+            WITH
+                lap_data AS (
+                    SELECT
+                        r.year,
+                        r.name AS race_name,
+                        r.date AS race_date,
+                        c.name AS constructor_name,
+                        c.color AS constructor_color,
+                        d.full_name AS driver_name,
+                        CASE WHEN l.is_final THEN rr.status END AS ending_status,
+                        l.lap,
+                        l.position,
+                        l.time AS lap_time,
+                        l.milliseconds AS lap_milliseconds,
+                        ps.time AS pit_stop_time,
+                        ps.milliseconds AS pit_stop_milliseconds,
+                        l.milliseconds - COALESCE(ps.milliseconds, 0) AS net_lap_milliseconds,
+                        ps.race_k NOT NULL AS is_pit_lap,
+                        SUM(ps.race_k NOT NULL) OVER (PARTITION BY l.race_k, l.driver_k ORDER BY l.lap) + 1 AS stint_number
+                    FROM
+                        fact_lap AS l
+                        LEFT JOIN fact_pit_stop AS ps
+                            ON l.race_k = ps.race_k
+                            AND l.driver_k = ps.driver_k
+                            AND l.lap = (ps.lap + 1)
+                        LEFT JOIN fact_race_result AS rr
+                            ON l.race_k = rr.race_k
+                            AND l.driver_k = rr.driver_k
+                        LEFT JOIN dim_race AS r
+                            ON l.race_k = r.race_k
+                        LEFT JOIN dim_driver AS d
+                            ON l.driver_k = d.driver_k
+                        LEFT JOIN dim_constructor AS c
+                            ON rr.constructor_k = c.constructor_k
+                    WHERE TRUE
+                        AND NOT rr.is_sprint
+                ),
+                tire_age AS (
+                    SELECT
+                        *,
+                        ROW_NUMBER() OVER (PARTITION BY year, race_name, driver_name, stint_number ORDER BY lap) AS tire_age
+                    FROM lap_data
+                )
+            SELECT *
+            FROM tire_age
+            ORDER BY year, race_date, constructor_name, driver_name, lap;
+    ''')
+    con.execute(f'''
+        CREATE INDEX "report_race_metrics_year_race_name" ON "report_race_metrics" (
+            "year",
+            "race_name"
         );
     ''')
 # %%

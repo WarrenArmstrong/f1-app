@@ -164,6 +164,73 @@ def layout(url):
                 ),
             ]
         ),
+        dbc.Row(
+            children=[
+                dbc.Col(
+                    children=[
+                        dbc.Card(
+                            children=[
+                                dbc.CardBody(
+                                    children=[
+                                        dbc.Row(
+                                            children=[
+                                                dbc.Col(
+                                                    children=[
+                                                        dbc.Label('Season', width='auto'),
+                                                        dbc.Select(
+                                                            id='race_season_select',
+                                                            value=2021,
+                                                            options=[
+                                                                {'label': item, 'value': item}
+                                                                for item in range(1996, 2023)
+                                                            ],
+                                                        ),
+                                                    ],
+                                                    width=4,
+                                                ),
+                                                dbc.Col(
+                                                    children=[
+                                                        dbc.Label('Race', width='auto'),
+                                                        dbc.Select(
+                                                            id='race_race_select',
+                                                            value='Abu Dhabi Grand Prix',
+                                                            options=[
+                                                                {'label': item, 'value': item}
+                                                                for item in ['Abu Dhabi Grand Prix', 'Saudi Arabian Grand Prix']
+                                                            ],
+                                                        ),
+                                                    ],
+                                                    width=4,
+                                                ),
+                                                dbc.Col(
+                                                    children=[
+                                                        dbc.Label('Focus', width='auto'),
+                                                        dbc.Select(
+                                                            id='race_focus_select',
+                                                            value='None',
+                                                            options=[
+                                                                {'label': item, 'value': item}
+                                                                for item in ['Max Verstappen', 'None']
+                                                            ],
+                                                        ),
+                                                    ],
+                                                    width=4,
+                                                ),
+                                            ],
+                                        ),
+                                        #dcc.Loading(
+                                            dcc.Graph(id='race_bump_graph')
+                                        #),
+                                    ]
+                                )
+                            ],
+                            className='shadow mb-4',
+                        )
+                    ],
+                    width=10,
+                ),
+            ]
+        ),
         html.Div(id='seasons_placeholder'),
         html.Div(id='season_placeholder'),
     ]
