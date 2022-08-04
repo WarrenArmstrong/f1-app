@@ -51,12 +51,8 @@ def seasons_open_wiki(clickData):
     if clickData is None:
         raise PreventUpdate
     else:
-        customdata = clickData['points'][0]['customdata']
-        if not type(customdata[0]) is int:    
-            url = clickData['points'][0]['customdata'][0]
-            webbrowser.open_new_tab(url)
-        else:
-            raise PreventUpdate
+        url = clickData['points'][0]['customdata'][0]
+        webbrowser.open_new_tab(url)
 
 
 @app.callback(
@@ -67,12 +63,8 @@ def season_open_wiki(clickData):
     if clickData is None:
         raise PreventUpdate
     else:
-        customdata = clickData['points'][0]['customdata']
-        if not type(customdata[0]) is int:
-            url = customdata[0]
-            webbrowser.open_new_tab(url)
-        else:
-            raise PreventUpdate
+        url = clickData['points'][0]['customdata'][0]
+        webbrowser.open_new_tab(url)
 
 
 @app.callback(
@@ -111,6 +103,7 @@ def race_race_select(season):
 
     return options
 
+
 @app.callback(
     Output('race_focus_select', 'options'),
     Input('race_season_select', 'value'),
@@ -143,33 +136,3 @@ def race_focus_select(season, race):
     ]
 
     return options
-
-
-@app.callback(
-    Output('race_season_select', 'value'),
-    Output('race_race_select', 'value'),
-    Input('season_rank_graph', 'clickData'),
-)
-def season_open_wiki_2(clickData):
-    if clickData is None:
-        raise PreventUpdate
-    else:
-        customdata = clickData['points'][0]['customdata']
-        if type(customdata[0]) is int:
-            return customdata[0], customdata[1]
-        else:
-            raise PreventUpdate
-
-@app.callback(
-    Output('season_season_select', 'value'),
-    Input('seasons_rank_graph', 'clickData'),
-)
-def seasons_open_wiki(clickData):
-    if clickData is None:
-        raise PreventUpdate
-    else:
-        customdata = clickData['points'][0]['customdata']
-        if type(customdata[0]) is int:
-            return customdata[0]
-        else:
-            raise PreventUpdate

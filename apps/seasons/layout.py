@@ -218,9 +218,7 @@ def layout(url):
                                                 ),
                                             ],
                                         ),
-                                        #dcc.Loading(
-                                            dcc.Graph(id='race_bump_graph')
-                                        #),
+                                        dcc.Graph(id='race_bump_graph')
                                     ]
                                 )
                             ],

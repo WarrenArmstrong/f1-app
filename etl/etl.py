@@ -97,15 +97,92 @@ with local_engine.connect() as con:
         --sql
         
         CREATE TABLE fact_lap AS
+            WITH
+                lap_zero AS (
+                    SELECT
+                        rr.raceId AS race_k,
+                        rr.driverId AS driver_k,
+                        0 AS lap,
+                        COALESCE(sr.position, q.position) AS position,
+                        NULL AS time,
+                        NULL AS milliseconds
+                    FROM
+                        stg_results AS rr
+                        LEFT JOIN stg_sprint_results AS sr
+                            ON rr.raceId = sr.raceId
+                            AND rr.driverId = sr.driverId
+                        LEFT JOIN stg_qualifying AS q
+                            ON rr.raceId = q.raceId
+                            AND rr.driverId = q.driverId
+                    WHERE COALESCE(sr.position, q.position) IS NOT NULL
+                ),
+                real_laps AS (
+                    SELECT
+                        raceId AS race_k,
+                        driverId AS driver_k,
+                        lap,
+                        position,
+                        time,
+                        milliseconds
+                    FROM stg_lap_times
+                ),
+                dnf_laps AS (
+                    WITH
+                        max_laps AS (
+                            SELECT
+                                raceId AS race_k,
+                                MAX(lap) AS max_lap
+                            FROM stg_lap_times
+                            GROUP BY raceId
+                        ),
+                        last_laps AS (
+                            SELECT
+                                raceId AS race_k,
+                                driverId AS driver_k,
+                                lap,
+                                position,
+                                time,
+                                milliseconds,
+                                ROW_NUMBER() OVER (PARTITION BY raceId, driverId ORDER BY lap DESC) = 1 AS is_final
+                            FROM stg_lap_times
+                        )
+                    SELECT
+                        ll.race_k,
+                        ll.driver_k,
+                        ll.lap + 1 AS lap,
+                        CAST(rr.positionOrder AS INTEGER) AS position,
+                        NULL AS time,
+                        NULL AS milliseconds
+                    FROM
+                        last_laps AS ll
+                        LEFT JOIN max_laps AS ml
+                            ON ll.race_k = ml.race_k
+                        LEFT JOIN stg_results AS rr
+                            ON ll.race_k = rr.raceId
+                            AND ll.driver_k = rr.driverId
+                        LEFT JOIN stg_status AS s
+                            ON rr.statusId = s.statusId
+                    WHERE TRUE
+                        AND ll.is_final
+                        AND ll.lap < ml.max_lap
+                        AND NOT s.status LIKE '+% Lap'
+                ),
+                combined_laps AS (
+                    SELECT * FROM lap_zero
+                    UNION ALL
+                    SELECT * FROM real_laps
+                    UNION ALL
+                    SELECT * FROM dnf_laps
+                )
             SELECT
-                raceId AS race_k,
-                driverId AS driver_k,
+                race_k,
+                driver_k,
                 lap,
                 position,
                 time,
                 milliseconds,
-                ROW_NUMBER() OVER (PARTITION BY raceId, driverId ORDER BY lap DESC) = 1 AS is_final
-            FROM stg_lap_times;
+                ROW_NUMBER() OVER (PARTITION BY race_k, driver_k ORDER BY lap DESC) = 1 AS is_final
+            FROM combined_laps;
     ''')
 
 
@@ -183,7 +260,7 @@ with local_engine.connect() as con:
                 r.grid,
                 CAST(r.position AS INTEGER) AS position,
                 r.positionText AS position_text,
-                r.positionOrder AS position_order,
+                CAST(r.positionOrder AS Integer) AS position_order,
                 r.points,
                 r.laps,
                 r.time,
@@ -207,7 +284,7 @@ with local_engine.connect() as con:
                 sr.grid,
                 CAST(sr.position AS Integer) AS position,
                 sr.positionText AS position_text,
-                sr.positionOrder AS position_order,
+                CAST(sr.positionOrder AS Integer) AS position_order,
                 sr.points,
                 sr.laps,
                 sr.time,
@@ -647,6 +724,7 @@ with local_engine.connect() as con:
                         c.name AS constructor_name,
                         c.color AS constructor_color,
                         d.full_name AS driver_name,
+                        d.code AS driver_code,
                         CASE WHEN l.is_final THEN rr.status END AS ending_status,
                         l.lap,
                         l.position,

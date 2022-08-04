@@ -138,17 +138,6 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                     f'{metric}: %{{x}}',
                 ]),
             ),
-            go.Scatter(
-                x=[1], y=[1],
-                xaxis='x3', yaxis='y3',
-                showlegend=False,
-                marker={
-                    'size': 20,
-                    'symbol': 'square',
-                },
-                name='',
-                customdata=[[year]]
-            ),
         ]
 
         season_wiki_url = df['season_wiki_url'].iloc[0]
@@ -179,7 +168,6 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
     fig = go.Figure({
         'data': frame_figure(frames_data[0])['data'],
         'layout': {
-            #'title': f"{'Cumulative ' if cumulative == 'True' else ''}{metric} by Season and Driver/Constructor",
             'title': {
                 'text': f"{'Cumulative ' if cumulative == 'True' else ''}{metric} by Season and Driver/Constructor",
                 'y': 0.975
@@ -209,10 +197,6 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                 'range': [0, df[df['type'] == 'Constructor']['metric_value'].max()],
                 'anchor': 'y2',
             },
-            'xaxis3': {
-                'domain': [0.225, 0.275],
-                'visible': False,
-            },
             'yaxis1': {
                 'title': 'Driver',
                 'domain': [0.6, 1],
@@ -220,10 +204,6 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
             'yaxis2': {
                 'title': 'Constructor',
                 'domain': [0, 0.4]
-            },
-            'yaxis3': {
-                'domain': [0.45, 0.5],
-                'visible': False,
             },
             'annotations': [
                 {
@@ -242,15 +222,6 @@ def seasons_rank_chart(metric, cumulative, start_year, top_n):
                     'xref': 'paper',
                     'yref': 'paper',
                     'x': 0.5,
-                    'y': 0.475,
-                },
-                {
-                    'text': f'Click to View Season:',
-                    'align': 'left',
-                    'showarrow': False,
-                    'xref': 'paper',
-                    'yref': 'paper',
-                    'x': 0,
                     'y': 0.475,
                 },
             ],
@@ -429,18 +400,6 @@ def season_rank_chart(metric, cumulative, season, top_n):
                     f'{metric}: %{{x}}',
                 ]),
             ),
-            go.Scatter(
-                x=[1], y=[1],
-                xaxis='x3', yaxis='y3',
-                showlegend=False,
-                marker={
-                    'size': 20,
-                    'symbol': 'square',
-                },
-                name='',
-                customdata=[[season, race]],
-                visible=int(season) >= 1996
-            ),
         ]
 
         race_wiki_url = df['race_wiki_url'].iloc[0]
@@ -523,10 +482,6 @@ def season_rank_chart(metric, cumulative, season, top_n):
                 'range': [0, df[df['type'] == 'Constructor']['metric_value'].max()],
                 'anchor': 'y2',
             },
-            'xaxis3': {
-                'domain': [0.2, 0.25],
-                'visible': False,
-            },
             'yaxis1': {
                 'title': 'Driver',
                 'domain': [0.6, 1],
@@ -534,10 +489,6 @@ def season_rank_chart(metric, cumulative, season, top_n):
             'yaxis2': {
                 'title': 'Constructor',
                 'domain': [0, 0.4]
-            },
-            'yaxis3': {
-                'domain': [0.45, 0.5],
-                'visible': False,
             },
             'annotations': [
                 {
@@ -576,28 +527,8 @@ def season_rank_chart(metric, cumulative, season, top_n):
                     'yref': 'paper',
                     'x': 0.5,
                     'y': 0.475,
-                }] + 
-                ([{
-                    'text': f'Click to View Race:',
-                    'align': 'left',
-                    'showarrow': False,
-                    'xref': 'paper',
-                    'yref': 'paper',
-                    'x': 0,
-                    'y': 0.475,
-                }] if int(season) >= 1996 else []),
-            # 'shapes': [
-            #     {
-            #         'type': 'rect',
-            #         'xref': 'paper', 'yref': 'paper',
-            #         'x0': 0, 'x1': 0.1,
-            #         'y0': 0.45, 'y1': 0.5,
-            #         'fillcolor': 'LightSkyBlue',
-            #         'line': {
-            #             'width': 0,
-            #         },
-            #     }
-            # ],
+                },
+            ],
             'updatemenus': [
                 {
                     'buttons': [
@@ -715,8 +646,6 @@ def race_bump_chart(season, race, focus):
         '''
     )
 
-    #driver_names = list(df['driver_name'].unique())
-
     fig = go.Figure({
         'data': [
             go.Scatter(
@@ -724,7 +653,6 @@ def race_bump_chart(season, race, focus):
                 y=df[df['driver_name'] == driver_name]['position'],
                 xaxis='x1',
                 yaxis='y1',
-                #marker_color=df[df['driver_name'] == driver_name]['constructor_color'],
                 marker_color=df[df['driver_name'] == driver_name]['constructor_color'].iloc[0],
                 name=driver_name,
                 showlegend=False,
@@ -737,7 +665,7 @@ def race_bump_chart(season, race, focus):
                     'width': 10,
                 },  
                 textposition='middle right',
-                opacity=1 if focus in [driver_name, 'None'] else 0.25,
+                opacity=0.75 if focus in [driver_name, 'None'] else 0.25,
                 customdata=np.dstack([
                     df[df['driver_name'] == driver_name]['driver_name'],
                     df[df['driver_name'] == driver_name]['constructor_name'],
@@ -763,11 +691,13 @@ def race_bump_chart(season, race, focus):
             },
             'xaxis1': {
                 'title': 'Lap #',
-                'range': [0.8, df['lap'].max() + 8]
+                'range': [-0, df['lap'].max() + 8],
+                #'domain': [0.2, 0.8],
             },
             'yaxis1': {
                 'title':'Position',
                 'range': [df['position'].max() + 0.2, 0.7],
+                'visible': False,
             },
             'annotations': [
                 {
@@ -779,6 +709,32 @@ def race_bump_chart(season, race, focus):
                     'x': 1,
                     'y': 1.1,
                 }
+            ] + [
+                {
+                    'text': row['driver_code'],
+                    'align': 'left',
+                    'showarrow': False,
+                    'xref': 'x1',
+                    'xanchor': 'left',
+                    'yref': 'y1',
+                    'x': df['lap'].max() + 8,
+                    'y': row['position'],
+                    'bgcolor': row['constructor_color'],
+                }
+                for row in df[~df['ending_status'].isna()].sort_values(by='position').to_dict('records')
+            ] + [
+                {
+                    'text': row['driver_code'],
+                    'align': 'center',
+                    'showarrow': False,
+                    'xref': 'x1',
+                    'xanchor': 'right',
+                    'yref': 'y1',
+                    'x': -0,
+                    'y': row['position'],
+                    'bgcolor': row['constructor_color'],
+                }
+                for row in df[df['lap'] == 0].sort_values(by='position').to_dict('records')
             ]
         },
     })
