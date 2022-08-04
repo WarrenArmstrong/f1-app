@@ -1,0 +1,6 @@
+"dockerd" accepts no argument(s).
+See 'dockerd --help'.
+
+Usage:  dockerd [OPTIONS]
+
+A self-sufficient runtime for containers.

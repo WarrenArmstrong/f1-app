@@ -41,10 +41,14 @@ app.layout = html.Div(
     Input('url', 'pathname')
 )
 def display_page(url):
+    # for app in app_list:
+    #     if app['routing']['path_is_valid'](url):
+    #         return app['layout'](url)
+
     for app in app_list:
-        if app['routing']['path_is_valid'](url):
+        if app['name'] == 'Seasons':
             return app['layout'](url)
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0')
+    app.run_server(debug=True, host='0.0.0.0', port=80)
