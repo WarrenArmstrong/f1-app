@@ -1,15 +1,13 @@
 FROM python:3.7
-WORKDIR /app
 
-RUN mkdir ./app
-COPY ./app ./app
+COPY ./app .
+
 RUN pip install -U pip
-RUN pip install -r ./app/requirements.txt
+RUN pip install -r requirements.txt
 
-
-WORKDIR /app/app/etl
+WORKDIR /etl
 RUN python etl.py
 
 EXPOSE 80
-WORKDIR /app/app
+WORKDIR /
 CMD ["gunicorn", "-b", ":80", "wsgi:server"]
