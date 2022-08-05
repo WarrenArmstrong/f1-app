@@ -1,14 +1,12 @@
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 
-from dash.exceptions import PreventUpdate
-import webbrowser
-
 from app import app, engine
 
 from . import charts
 
 import pandas as pd
+from flask import request, jsonify
 
 
 @app.callback(
@@ -43,28 +41,36 @@ def seasons_update_rank_graph(season, race, focus):
     return charts.race_bump_chart(season, race, focus)
 
 
-@app.callback(
+app.clientside_callback(
+    """
+    function(clickData) {
+        if (clickData != null) {
+            url = clickData['points'][0]['customdata'][0]
+            window.open(url)
+        }
+
+        return '';
+    }
+    """,
     Output('seasons_placeholder', 'children'),
     Input('seasons_rank_graph', 'clickData'),
 )
-def seasons_open_wiki(clickData):
-    if clickData is None:
-        raise PreventUpdate
-    else:
-        url = clickData['points'][0]['customdata'][0]
-        webbrowser.open_new_tab(url)
 
 
-@app.callback(
+app.clientside_callback(
+    """
+    function(clickData) {
+        if (clickData != null) {
+            url = clickData['points'][0]['customdata'][0]
+            window.open(url)
+        }
+
+        return '';
+    }
+    """,
     Output('season_placeholder', 'children'),
     Input('season_rank_graph', 'clickData'),
 )
-def season_open_wiki(clickData):
-    if clickData is None:
-        raise PreventUpdate
-    else:
-        url = clickData['points'][0]['customdata'][0]
-        webbrowser.open_new_tab(url)
 
 
 @app.callback(
@@ -136,3 +142,10 @@ def race_focus_select(season, race):
     ]
 
     return options
+
+
+@app.server.route('/api/query', methods=['GET'])
+def query():
+    query = request.args.get('query')
+    result = pd.read_sql(con=engine, sql=query)
+    return jsonify(result.to_json(orient='records'))
