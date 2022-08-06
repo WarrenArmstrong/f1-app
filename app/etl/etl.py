@@ -9,7 +9,7 @@ local_engine = create_engine('sqlite:///../data.db')
 # load csvs into database
 for filename in os.listdir('data/'):
     print(filename)
-    df = pd.read_csv(f'data/{filename}')
+    df = pd.read_csv(f'data/{filename}', na_values='\\N')
     df.to_sql(
         con=local_engine,
         name='stg_' + filename[:-4],
@@ -54,7 +54,7 @@ with local_engine.connect() as con:
                 c.name,
                 c.nationality,
                 c.url AS wiki_url,
-                COALESCE(cs.custom_color, cs.auto_color) AS color
+                CAST(COALESCE(cs.custom_color, cs.auto_color) AS TEXT) AS color
             FROM
                 stg_constructors AS c
                 LEFT JOIN stg_constructor_color AS cs
@@ -79,7 +79,7 @@ with local_engine.connect() as con:
                 code,
                 forename AS first_name,
                 surname AS last_name,
-                forename || ' ' || surname AS full_name,
+                CAST(forename || ' ' || surname AS TEXT) AS full_name,
                 dob,
                 nationality,
                 url AS wiki_url
@@ -102,10 +102,10 @@ with local_engine.connect() as con:
                     SELECT
                         rr.raceId AS race_k,
                         rr.driverId AS driver_k,
-                        0 AS lap,
-                        COALESCE(sr.position, q.position) AS position,
-                        NULL AS time,
-                        NULL AS milliseconds
+                        CAST(0 AS INTEGER) AS lap,
+                        CAST(COALESCE(sr.positionOrder, q.position) AS INTEGER) AS position,
+                        CAST(NULL AS INTEGER) AS time,
+                        CAST(NULL AS INTEGER) AS milliseconds
                     FROM
                         stg_results AS rr
                         LEFT JOIN stg_sprint_results AS sr
@@ -114,7 +114,7 @@ with local_engine.connect() as con:
                         LEFT JOIN stg_qualifying AS q
                             ON rr.raceId = q.raceId
                             AND rr.driverId = q.driverId
-                    WHERE COALESCE(sr.position, q.position) IS NOT NULL
+                    WHERE COALESCE(sr.positionOrder, q.position) IS NOT NULL
                 ),
                 real_laps AS (
                     SELECT
@@ -126,25 +126,30 @@ with local_engine.connect() as con:
                         milliseconds
                     FROM stg_lap_times
                 ),
+                zero_and_real_laps AS (
+                    SELECT * FROM lap_zero
+                    UNION ALL
+                    SELECT * FROM real_laps
+                ),
                 dnf_laps AS (
                     WITH
                         max_laps AS (
                             SELECT
-                                raceId AS race_k,
+                                race_k,
                                 MAX(lap) AS max_lap
-                            FROM stg_lap_times
-                            GROUP BY raceId
+                            FROM zero_and_real_laps
+                            GROUP BY race_k
                         ),
                         last_laps AS (
                             SELECT
-                                raceId AS race_k,
-                                driverId AS driver_k,
+                                race_k,
+                                driver_k,
                                 lap,
                                 position,
                                 time,
                                 milliseconds,
-                                ROW_NUMBER() OVER (PARTITION BY raceId, driverId ORDER BY lap DESC) = 1 AS is_final
-                            FROM stg_lap_times
+                                ROW_NUMBER() OVER (PARTITION BY race_k, driver_k ORDER BY lap DESC) = 1 AS is_final
+                            FROM zero_and_real_laps
                         )
                     SELECT
                         ll.race_k,
@@ -165,7 +170,7 @@ with local_engine.connect() as con:
                     WHERE TRUE
                         AND ll.is_final
                         AND ll.lap < ml.max_lap
-                        AND NOT s.status LIKE '+% Lap'
+                        AND NOT s.status LIKE '+% Lap%'
                 ),
                 combined_laps AS (
                     SELECT * FROM lap_zero
@@ -181,7 +186,12 @@ with local_engine.connect() as con:
                 position,
                 time,
                 milliseconds,
-                ROW_NUMBER() OVER (PARTITION BY race_k, driver_k ORDER BY lap DESC) = 1 AS is_final
+                CAST(
+                    ROW_NUMBER() OVER (
+                        PARTITION BY race_k, driver_k
+                        ORDER BY lap DESC
+                    ) = 1 AS INTEGER
+                ) AS is_final
             FROM combined_laps;
     ''')
 
@@ -232,9 +242,11 @@ with local_engine.connect() as con:
                 year,
                 round,
                 name,
-                CASE WHEN CAST(substr(date, 7, 2) AS INTEGER) >= 50 THEN '19' ELSE '20' END || substr(date, 7, 2) || '-' ||
-                    substr(date, 4, 2) || '-' ||
-                    substr(date, 1, 2) AS date,
+                CAST(
+                    CASE WHEN CAST(substr(date, 7, 2) AS INTEGER) >= 50 THEN '19' ELSE '20' END || substr(date, 7, 2) || '-' ||
+                        substr(date, 4, 2) || '-' ||
+                        substr(date, 1, 2)
+                AS TEXT) AS date,
                 time,
                 url AS wiki_url
             FROM stg_races;
@@ -255,12 +267,12 @@ with local_engine.connect() as con:
                 r.raceId AS race_k,
                 r.driverId AS driver_k,
                 r.constructorId AS constructor_k,
-                FALSE AS is_sprint,
+                CAST(FALSE AS INTEGER) AS is_sprint,
                 r.number,
                 r.grid,
                 CAST(r.position AS INTEGER) AS position,
                 r.positionText AS position_text,
-                CAST(r.positionOrder AS Integer) AS position_order,
+                CAST(r.positionOrder AS INTEGER) AS position_order,
                 r.points,
                 r.laps,
                 r.time,
@@ -279,12 +291,12 @@ with local_engine.connect() as con:
                 sr.raceId AS race_k,
                 sr.driverId AS driver_k,
                 sr.constructorId AS constructor_k,
-                TRUE AS is_sprint,
+                CAST(TRUE AS INTEGER) AS is_sprint,
                 sr.number,
                 sr.grid,
-                CAST(sr.position AS Integer) AS position,
+                CAST(NULLIF(sr.position, '\\N') AS INTEGER) AS position,
                 sr.positionText AS position_text,
-                CAST(sr.positionOrder AS Integer) AS position_order,
+                CAST(sr.positionOrder AS INTEGER) AS position_order,
                 sr.points,
                 sr.laps,
                 sr.time,
