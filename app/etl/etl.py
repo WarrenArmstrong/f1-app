@@ -103,18 +103,10 @@ with local_engine.connect() as con:
                         rr.raceId AS race_k,
                         rr.driverId AS driver_k,
                         CAST(0 AS INTEGER) AS lap,
-                        CAST(COALESCE(sr.positionOrder, q.position) AS INTEGER) AS position,
+                        rr.grid AS position,
                         CAST(NULL AS INTEGER) AS time,
                         CAST(NULL AS INTEGER) AS milliseconds
-                    FROM
-                        stg_results AS rr
-                        LEFT JOIN stg_sprint_results AS sr
-                            ON rr.raceId = sr.raceId
-                            AND rr.driverId = sr.driverId
-                        LEFT JOIN stg_qualifying AS q
-                            ON rr.raceId = q.raceId
-                            AND rr.driverId = q.driverId
-                    WHERE COALESCE(sr.positionOrder, q.position) IS NOT NULL
+                    FROM stg_results AS rr
                 ),
                 real_laps AS (
                     SELECT
