@@ -1,5 +1,6 @@
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
+import pandas as pd
 
 import apps
 
@@ -20,6 +21,14 @@ navbar = dbc.Navbar(
                         ],
                     ),
                     href='/Home/'
+                ),
+                dbc.Toast(
+                    'Data Updated: ' + pd.Timestamp.now().strftime('%Y-%m-%d %H:%M %p'),
+                    #header="Info",
+                    is_open=True,
+                    dismissable=True,
+                    icon='info',
+                    style={"position": "fixed", "top": 66, "right": 10, "width": 260},
                 ),
             ]
         )

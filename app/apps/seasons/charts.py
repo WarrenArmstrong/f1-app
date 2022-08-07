@@ -694,7 +694,7 @@ def race_bump_chart(season, race, focus):
             },
             'xaxis1': {
                 'title': 'Lap #',
-                'range': [-0, df['lap'].max() * 1.09],
+                'range': [-0, df['lap'].max() * 1.071],
                 #'domain': [0.2, 0.8],
             },
             'yaxis1': {
@@ -723,7 +723,7 @@ def race_bump_chart(season, race, focus):
                     'xref': 'x1',
                     'xanchor': 'left',
                     'yref': 'y1',
-                    'x': df['lap'].max() * 1.09,
+                    'x': df['lap'].max() * 1.071,
                     'y': row['position'],
                     'bgcolor': row['constructor_color'],
                     'width': 40,

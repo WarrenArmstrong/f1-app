@@ -2,7 +2,6 @@ from pydoc import classname
 from dash import Dash, dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 
-#from .charts import seasons_chart
 
 def layout(url):
     contents = [
@@ -81,7 +80,6 @@ def layout(url):
                             className='shadow mb-4',
                         )
                     ],
-                    width=10,
                 ),
             ]
         ),
@@ -160,7 +158,6 @@ def layout(url):
                             className='shadow mb-4',
                         )
                     ],
-                    width=10,
                 ),
             ]
         ),
@@ -225,7 +222,6 @@ def layout(url):
                             className='shadow mb-4',
                         )
                     ],
-                    width=10,
                 ),
             ]
         ),
