@@ -93,10 +93,13 @@ def race_race_select(season):
         con=engine,
         sql=f'''
             --sql
-            
-            SELECT name
-            FROM dim_race
-            WHERE year = {season}
+
+            SELECT r.name
+            FROM
+                fact_race_result AS rr
+                LEFT JOIN dim_race AS r
+                    ON rr.race_k = r.race_k
+            WHERE r.year = {season}
             GROUP BY name
             ORDER BY MAX(date);
         '''

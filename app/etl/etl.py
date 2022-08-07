@@ -564,6 +564,16 @@ with local_engine.connect() as con:
                         r.year,
                         c.constructor_k
                 ),
+                season_races AS (
+                    SELECT
+                        r.*
+                    FROM
+                        fact_race_result AS rr
+                        LEFT JOIN dim_race AS r
+                            ON rr.race_k = r.race_k
+                    GROUP BY
+                        r.race_k
+                ),
                 driver_metrics AS (
                     SELECT
                         r.year,
@@ -583,7 +593,7 @@ with local_engine.connect() as con:
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums
                     FROM
                         season_drivers AS d
-                        INNER JOIN dim_race AS r
+                        INNER JOIN season_races AS r
                             ON d.year = r.year
                         LEFT JOIN fact_race_result AS rr
                             ON r.race_k = rr.race_k
@@ -618,7 +628,7 @@ with local_engine.connect() as con:
                         SUM(CASE WHEN NOT rr.is_sprint THEN rr.position BETWEEN 1 AND 3 ELSE 0 END) AS podiums
                     FROM
                         season_constructors AS c
-                        INNER JOIN dim_race AS r
+                        INNER JOIN season_races AS r
                             ON c.year = r.year
                         LEFT JOIN fact_race_result AS rr
                             ON r.race_k = rr.race_k
