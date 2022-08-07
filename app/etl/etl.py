@@ -2,13 +2,22 @@
 import pandas as pd
 from sqlalchemy import create_engine
 import os
+from kaggle.api.kaggle_api_extended import KaggleApi
+# %%
+# download latest data from kaggle
+api = KaggleApi()
+api.authenticate()
+api.dataset_download_files(
+    'rohanrao/formula-1-world-championship-1950-2020', 'data',
+    force=True,
+    unzip=True,
+)
 # %%
 # connect to database
 local_engine = create_engine('sqlite:///../data.db')
 # %%
 # load csvs into database
 for filename in os.listdir('data/'):
-    print(filename)
     df = pd.read_csv(f'data/{filename}', na_values='\\N')
     df.to_sql(
         con=local_engine,
@@ -107,6 +116,7 @@ with local_engine.connect() as con:
                         CAST(NULL AS INTEGER) AS time,
                         CAST(NULL AS INTEGER) AS milliseconds
                     FROM stg_results AS rr
+                    WHERE rr.grid <> 0
                 ),
                 real_laps AS (
                     SELECT
@@ -234,11 +244,17 @@ with local_engine.connect() as con:
                 year,
                 round,
                 name,
-                CAST(
-                    CASE WHEN CAST(substr(date, 7, 2) AS INTEGER) >= 50 THEN '19' ELSE '20' END || substr(date, 7, 2) || '-' ||
+                CAST(CASE
+                    WHEN date LIKE '%/%' THEN
+                        CASE
+                            WHEN CAST(substr(date, 7, 2) AS INTEGER) >= 50 THEN '19'
+                            ELSE '20'
+                        END || substr(date, 7, 2) || '-' ||
                         substr(date, 4, 2) || '-' ||
                         substr(date, 1, 2)
-                AS TEXT) AS date,
+                    ELSE date
+                END AS TEXT) AS date,
+                date,
                 time,
                 url AS wiki_url
             FROM stg_races;
@@ -728,7 +744,7 @@ with local_engine.connect() as con:
                         c.name AS constructor_name,
                         c.color AS constructor_color,
                         d.full_name AS driver_name,
-                        d.code AS driver_code,
+                        COALESCE(d.code, '#NA') AS driver_code,
                         CASE WHEN l.is_final THEN rr.status END AS ending_status,
                         l.lap,
                         l.position,

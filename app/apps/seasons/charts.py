@@ -7,12 +7,15 @@ import itertools as it
 
 from app import engine
 
-def gen_color(df, cols):
-    color_df = df[cols].drop_duplicates()
+def text_color(background_color):
+    background_color = background_color.lstrip('#')
+    
+    r, g, b = tuple(int(background_color[i:i+2], 16) for i in (0, 2, 4))
 
-    color_df['color'] = list(it.islice(it.cycle(px.colors.qualitative.Dark24), color_df.shape[0]))
+    brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000
 
-    return pd.merge(df, color_df, how='left', left_on=cols, right_on=cols)
+    return '#FFFFFF' if brightness < 125 else '#000000'
+
 
 def seasons_rank_chart(metric, cumulative, start_year, top_n):
     cumualtive_prefix = 'cumulative_' if cumulative == 'True' else ''
@@ -691,7 +694,7 @@ def race_bump_chart(season, race, focus):
             },
             'xaxis1': {
                 'title': 'Lap #',
-                'range': [-0, df['lap'].max() + 8],
+                'range': [-0, df['lap'].max() * 1.09],
                 #'domain': [0.2, 0.8],
             },
             'yaxis1': {
@@ -712,27 +715,35 @@ def race_bump_chart(season, race, focus):
             ] + [
                 {
                     'text': row['driver_code'],
-                    'align': 'left',
+                    'font': {
+                        'color': text_color(row['constructor_color'])
+                    },
+                    'align': 'center',
                     'showarrow': False,
                     'xref': 'x1',
                     'xanchor': 'left',
                     'yref': 'y1',
-                    'x': df['lap'].max() + 8,
+                    'x': df['lap'].max() * 1.09,
                     'y': row['position'],
                     'bgcolor': row['constructor_color'],
+                    'width': 40,
                 }
                 for row in df[~df['ending_status'].isna()].sort_values(by='position').to_dict('records')
             ] + [
                 {
                     'text': row['driver_code'],
+                    'font': {
+                        'color': text_color(row['constructor_color'])
+                    },
                     'align': 'center',
                     'showarrow': False,
                     'xref': 'x1',
                     'xanchor': 'right',
                     'yref': 'y1',
-                    'x': -0,
+                    'x': 0,
                     'y': row['position'],
                     'bgcolor': row['constructor_color'],
+                    'width': 40,
                 }
                 for row in df[df['lap'] == 0].sort_values(by='position').to_dict('records')
             ]
