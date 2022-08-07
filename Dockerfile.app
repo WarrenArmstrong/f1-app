@@ -14,6 +14,6 @@ RUN pip install -r requirements.txt
 WORKDIR /etl
 RUN python etl.py
 
-EXPOSE 80
+EXPOSE 5000
 WORKDIR /
-CMD ["gunicorn", "-b", ":80", "wsgi:server"]
+CMD ["gunicorn", "-b", ":5000", "wsgi:server"]
