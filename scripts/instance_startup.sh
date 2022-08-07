@@ -1,10 +1,13 @@
 cd /home/ec2-user/f1-app
 
+source /home/ec2-user/set_env.sh
+
 git fetch
 git pull
 
 sudo service docker restart
 
+docker kill $(docker ps -q)
 docker rm -vf $(docker ps -aq)
 docker rmi -f $(docker images -aq)
 
