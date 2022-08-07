@@ -18,13 +18,19 @@ local_engine = create_engine('sqlite:///../data.db')
 # %%
 # load csvs into database
 for filename in os.listdir('data/'):
-    df = pd.read_csv(f'data/{filename}', na_values='\\N')
-    df.to_sql(
-        con=local_engine,
-        name='stg_' + filename[:-4],
-        if_exists='replace',
-        index=False,
-    )
+    table_name = 'stg_' + filename[:-4]
+
+    with local_engine.connect() as con:
+        con.execute(f'DROP TABLE IF EXISTS {table_name}')
+
+    with pd.read_csv(f'data/{filename}', na_values='\\N', chunksize=1000) as reader:
+        for chunk in reader:
+            chunk.to_sql(
+                con=local_engine,
+                name=table_name,
+                if_exists='append',
+                index=False,
+            )
 # %%
 # build database
 with local_engine.connect() as con:

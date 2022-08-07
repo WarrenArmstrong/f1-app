@@ -1,1 +1,0 @@
-sudo service docker restart
