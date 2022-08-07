@@ -260,7 +260,6 @@ with local_engine.connect() as con:
                         substr(date, 1, 2)
                     ELSE date
                 END AS TEXT) AS date,
-                date,
                 time,
                 url AS wiki_url
             FROM stg_races;
