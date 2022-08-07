@@ -1,0 +1,101 @@
+Table dim_circuit {
+  circuit_k int [pk]
+  ref varchar
+  name varchar
+  location varchar
+  country varchar
+  latitude float
+  longitude float
+  altitude float
+  wiki_url varchar
+}
+
+Table dim_constructor {
+  constructor_k int [pk]
+  ref varchar
+  name varchar
+  nationality varchar
+  wiki_url varchar
+  color varchar
+}
+
+Table dim_driver {
+  driver_k int [pk]
+  ref varchar
+  number int
+  code varchar
+  first_name varchar
+  last_name varchar
+  full_name varchar
+  dob date
+  nationality varchar
+  wiki_url varchar
+}
+
+Table dim_race {
+  race_k int [pk]
+  circuit_k int [ref: > dim_circuit.circuit_k]
+  year int [ref: > dim_season.year]
+  round int
+  name varchar
+  date date
+  time varchar
+  wiki_url varchar
+}
+
+Table dim_season {
+  year int [pk]
+  wiki_url varchar
+}
+
+Table fact_lap {
+  race_k int [ref: > dim_race.race_k]
+  driver_k int [ref: > dim_driver.driver_k]
+  lap int
+  position int
+  time varchar
+  milliseconds int
+  is_final boolean
+}
+
+Table fact_pit_stop {
+  race_k int [ref: > dim_race.race_k]
+  driver_k int [ref: > dim_driver.driver_k]
+  lap int
+  stop int
+  time varchar
+  duration varchar
+  milliseconds int
+}
+
+Table fact_qualifying {
+  race_k int [ref: > dim_race.race_k]
+  driver_k int [ref: > dim_driver.driver_k]
+  constructor_k int [ref: > dim_constructor.constructor_k]
+  number int
+  position int
+  q1 varchar
+  q2 varchar
+  q3 varchar
+}
+
+Table fact_race_result {
+  race_k int [ref: > dim_race.race_k]
+  driver_k int [ref: > dim_driver.driver_k]
+  constructor_k int [ref: > dim_constructor.constructor_k]
+  is_sprint boolean
+  number float
+  grid int
+  position int
+  position_text varchar
+  position_order int
+  points float
+  laps int
+  time varchar
+  milliseconds float
+  fastest_lap float
+  rank float
+  fasest_lap_time varchar
+  fastest_lap_speed float
+  status varchar
+}
