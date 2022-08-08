@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    image: f1-app
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    image: f1-app-nginx
+    ports:
+      - "80:80"
