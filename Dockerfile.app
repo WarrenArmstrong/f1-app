@@ -13,7 +13,7 @@ ENV KAGGLE_KEY=$KAGGLE_KEY
 RUN pip install -U pip
 RUN pip install -r requirements.txt
 
-RUN python etl.py
+RUN ( cd etl && python etl.py )
 
 EXPOSE 5000
 CMD ["gunicorn", "-b", ":5000", "wsgi:server"]
