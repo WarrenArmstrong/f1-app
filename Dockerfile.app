@@ -2,7 +2,7 @@ FROM python:3.7
 
 COPY ./app ./app
 COPY ./etl ./etl
-COPY README.md .
+COPY README.md ./app
 
 ARG KAGGLE_USERNAME
 ARG KAGGLE_KEY
