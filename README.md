@@ -34,7 +34,7 @@ The webapp is written using [Plotly Dash](https://dash.plotly.com), a python lib
 - download or clone the repository
 - set the `KAGGLE_USERNAME` and `KAGGLE_KEY` environment variables
 - run `pip install -r requirements.txt`
-- run `python etl/etl.py`
+- run `( cd etl && python etl.py )`
 - run `python app/index.py`
 - connect at http://127.0.0.1:8050
 

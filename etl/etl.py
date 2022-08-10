@@ -14,7 +14,7 @@ api.dataset_download_files(
 )
 # %%
 # connect to database
-local_engine = create_engine('sqlite:///../data.db')
+local_engine = create_engine('sqlite:///../app/data.db')
 # %%
 # load csvs into database
 for filename in os.listdir('data/'):
