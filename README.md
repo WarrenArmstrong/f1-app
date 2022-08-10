@@ -15,7 +15,7 @@ Access my site at [dash.f1.warrenarmstrong.io](http://dash.f1.warrenarmstrong.io
 - [License](#license)
 
 ## About
-This app allows the user to view metrics and visualizations of Formula 1 data. It does this by taking the [Formula 1 World Championship](https://www.kaggle.com/datasets/rohanrao/formula-1-world-championship-1950-2020) dataset from Kaggle, building it into a snowflake schema relational database. The app executes queries against this database in order to serve metrics and visualizations to the user.
+This app allows the user to view metrics and visualizations of Formula 1 data. It does this by taking the [Formula 1 World Championship](https://www.kaggle.com/datasets/rohanrao/formula-1-world-championship-1950-2020) dataset from Kaggle and building it into a snowflake schema relational database. The app executes queries against this database in order to serve metrics and visualizations to the user.
 
 ## Screenshots
 
