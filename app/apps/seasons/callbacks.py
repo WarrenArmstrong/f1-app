@@ -147,8 +147,8 @@ def race_focus_select(season, race):
     return options
 
 
-@app.server.route('/api/query', methods=['GET'])
-def query():
-    query = request.args.get('sql')
-    result = pd.read_sql(con=engine, sql=query)
-    return jsonify(result.to_json(orient='records'))
+# @app.server.route('/api/query', methods=['GET'])
+# def query():
+#     query = request.args.get('sql')
+#     result = pd.read_sql(con=engine, sql=query)
+#     return jsonify(result.to_json(orient='records'))
