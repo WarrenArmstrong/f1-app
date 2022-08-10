@@ -3,39 +3,10 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 
 import apps
-
 from app import app
-
 from app_interface import app_list
+from navbar import navbar
 
-navbar = dbc.Navbar(
-    children=[
-        dbc.Container(
-            children=[
-                dcc.Link(
-                    dbc.Row(
-                        children=[
-                            dbc.Col([
-                                html.Img(src=r'\assets\f1_logo_cropped.png', height='30px')
-                            ])
-                        ],
-                    ),
-                    href='/Home/'
-                ),
-                dbc.Toast(
-                    'Data Updated: ' + pd.Timestamp.now().strftime('%Y-%m-%d %H:%M %p'),
-                    #header="Info",
-                    is_open=True,
-                    dismissable=True,
-                    icon='info',
-                    style={"position": "fixed", "top": 66, "right": 10, "width": 260},
-                ),
-            ]
-        )
-    ],
-    color='white',
-    className='shadow mb-4 sticky-top',
-)
 
 app.layout = html.Div(
     children=[
