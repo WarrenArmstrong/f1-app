@@ -23,7 +23,7 @@ This app allows the user to view metrics and visualizations of Formula 1 data. I
 
 ![2021 Driver/Constructor World Championship Results](app/assets/readme_images/season_exhibit_700px.png?raw=true)  
 
-Snowflake schema ER diagram:
+Snowflake Schema ER Diagram:
 
 ![Snowflake schema ER diagram](app/assets/readme_images/er_diagram_700px.png?raw=true)
 
