@@ -13,7 +13,8 @@ ENV KAGGLE_KEY=$KAGGLE_KEY
 RUN pip install -U pip
 RUN pip install -r app/requirements.txt
 
-RUN ( cd etl && python etl.py )
+WORKDIR /etl
+RUN python etl.py
 
 EXPOSE 5000
 WORKDIR /app
