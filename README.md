@@ -21,11 +21,11 @@ This app allows the user to view metrics and visualizations of Formula 1 data. I
 
 2021 Driver/Constructor World Championship Results:
 
-![2021 Driver/Constructor World Championship Results](\assets\readme_images\season_exhibit_700px.png)  
+![2021 Driver/Constructor World Championship Results](app/assets/readme_images/season_exhibit_700px.png?raw=true)  
 
 Snowflake schema ER diagram:
 
-![Snowflake schema ER diagram](\assets\readme_images\er_diagram_700px.png)
+![Snowflake schema ER diagram](app/assets/readme_images/er_diagram_700px.png?raw=true)
 
 ## Technologies
 The webapp is written using [Plotly Dash](https://dash.plotly.com), a python library built on top of [Flask](https://flask.palletsprojects.com/en/2.2.x/) and [React.js](https://reactjs.org/). The ETL code is written using the [sqlalchemy](https://www.sqlalchemy.org/) python package, and the database is [Sqlite 3](https://www.sqlite.org/index.html).

@@ -7,6 +7,14 @@ from app import app
 
 with open('README.md', 'r') as readme_file:
     readme = readme_file.read()
+    readme = readme.replace(
+        r'app/assets/readme_images/season_exhibit_700px.png?raw=true',
+        r'\assets\readme_images\season_exhibit_700px.png'
+    )
+    readme = readme.replace(
+        r'app/assets/readme_images/er_diagram_700px.png?raw=true',
+        r'\assets\readme_images\er_diagram_700px.png'
+    )
 
 
 navbar = html.Div(
