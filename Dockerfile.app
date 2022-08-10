@@ -1,6 +1,7 @@
 FROM python:3.7
 
 COPY ./app .
+COPY README.md .
 
 ARG KAGGLE_USERNAME
 ARG KAGGLE_KEY
